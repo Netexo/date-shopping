@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { initialSelection, plannerReducer, monthCells, formatDate } from "../app/calendar/lib/planner.js";
+import { initialSelection, plannerReducer, monthCells, formatDate, isSelectableDay } from "../app/calendar/lib/planner.js";
 
 const select = (day) => plannerReducer(initialSelection, { type: "select", day });
 const act = (state, type) => plannerReducer(state, { type });
@@ -22,7 +22,7 @@ test("the 27th goes straight to the time picker", () => {
 
 test("every other day is preserved after exactly three refusals", () => {
   for (let day = 1; day <= 31; day++) {
-    if (day === 27) continue;
+    if (day === 27 || !isSelectableDay(day)) continue;
     let state = select(day);
     for (let prompt = 0; prompt < 3; prompt++) {
       assert.equal(state.phase, "persuade");
@@ -38,13 +38,13 @@ test("every other day is preserved after exactly three refusals", () => {
 
 test("accepting the 27th works at each prompt; cancellation resets the prompt sequence", () => {
   for (let step = 0; step < 3; step++) {
-    let state = select(12);
+    let state = select(13);
     for (let i = 0; i < step; i++) state = act(state, "keep");
     const switched = act(state, "switch");
     assert.equal(switched.day, 27);
     assert.equal(switched.phase, "time");
     assert.deepEqual(act(state, "cancel"), initialSelection);
-    assert.equal(plannerReducer(act(state, "cancel"), { type: "select", day: 5 }).promptIndex, 0);
+    assert.equal(plannerReducer(act(state, "cancel"), { type: "select", day: 6 }).promptIndex, 0);
   }
 });
 
@@ -58,5 +58,29 @@ test("confirmation retains the chosen date and accepts valid 24-hour times only"
   }
   for (const time of ["", "24:00", "12:60", "9:00"]) {
     assert.deepEqual(plannerReducer(state, { type: "confirm", time }), state);
+  }
+});
+
+
+test("November dates retain their month through confirmation and switching", () => {
+  assert.equal(monthCells(10).filter((cell) => cell.currentMonth).length, 30);
+  assert.equal(formatDate(3, 10), "Dienstag, 3. November 2026");
+  let state = plannerReducer(initialSelection, { type: "select", day: 3, month: 10 });
+  assert.equal(act(state, "switch").month, 9);
+  for (let i = 0; i < 3; i++) state = act(state, "keep");
+  state = plannerReducer(state, { type: "confirm", time: "18:00" });
+  assert.equal(state.month, 10);
+  assert.equal(state.day, 3);
+  assert.equal(state.phase, "confirmed");
+});
+
+test("Sundays, Mondays and invalid dates cannot be selected in either month", () => {
+  for (const month of [9, 10]) {
+    for (let day = 1; day <= 31; day++) {
+      const date = new Date(Date.UTC(2026, month, day));
+      const blocked = date.getUTCMonth() !== month || [0, 1].includes(date.getUTCDay());
+      assert.equal(isSelectableDay(day, month), !blocked);
+      if (blocked) assert.equal(plannerReducer(initialSelection, { type: "select", day, month }), initialSelection);
+    }
   }
 });

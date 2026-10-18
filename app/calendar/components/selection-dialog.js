@@ -7,7 +7,7 @@ const prompts = [
   { text: "Letzte Chance! Der 27.10. hat wirklich hervorragende Bewertungen!", accept: "Überzeugt! 27.10.", keep: "Nein, wirklich nicht" },
 ];
 
-export default function SelectionDialog({ step, pendingDay, onSwitch, onKeep, onCancel }) {
+export default function SelectionDialog({ step, pendingDay, month, onSwitch, onKeep, onCancel }) {
   const dialogRef = useRef(null);
   const headingRef = useRef(null);
   const prompt = prompts[step];
@@ -25,7 +25,7 @@ export default function SelectionDialog({ step, pendingDay, onSwitch, onKeep, on
       <button type="button" className="dialog-close" aria-label="Datumsauswahl abbrechen" onClick={onCancel}>×</button>
       <p className="eyebrow">Kleine Nachfrage · {step + 1} / 3</p>
       <h2 id="prompt-title" ref={headingRef} tabIndex={-1}>{prompt.text}</h2>
-      <p id="original-date" className="muted">Deine Auswahl: {formatDate(pendingDay)}</p>
+      <p id="original-date" className="muted">Deine Auswahl: {formatDate(pendingDay, month)}</p>
       <div className="dialog-actions">
         <button className="planner-button" type="button" onClick={onSwitch}>{prompt.accept}</button>
         <button className="planner-button secondary" type="button" onClick={onKeep}>{prompt.keep}</button>
