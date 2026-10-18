@@ -1,7 +1,7 @@
 import { cartSummary, restoreCart } from "../../shop/lib/cart.js";
 import { readAppointment } from "../../shop/lib/appointment.js";
 
-export const ORDER_STORAGE_KEY = "date-shopping.checkout.v3";
+export const ORDER_STORAGE_KEY = "date-shopping.checkout.v4";
 
 export function checkoutDraft(appointment, entries) {
   const date = readAppointment(appointment?.date, appointment?.time);
@@ -33,7 +33,7 @@ function completedReceipt(receipt, draft) {
     || !appointment || appointment.date !== draft.appointment.date || appointment.time !== draft.appointment.time
     || !Number.isInteger(receipt.spent) || receipt.spent < 1 || receipt.spent > 100 || receipt.remaining !== 100 - receipt.spent) return null;
   return { ...draft, id: receipt.id, appointment, spent: receipt.spent, remaining: receipt.remaining,
-    status: "completed", backend: "local-json", completedAt: receipt.created_at };
+    status: "completed", backend: "vercel-blob", completedAt: receipt.created_at };
 }
 
 export function findCompletedOrder(storage, draft) {
@@ -68,8 +68,8 @@ export async function completeOrder(storage, draft, send = fetch) {
   const completed = completedReceipt(data.receipt, draft);
   if (!completed) throw new Error("Die Speicherung konnte nicht bestätigt werden. Bitte versuche es erneut.");
   request.receipt = data.receipt;
-  // The server has already confirmed the file write; a failed receipt cache is harmless.
+  // The server has already confirmed the private Blob write; a failed receipt cache is harmless.
   // The persisted request key still makes the next retry idempotent.
-  try { storage.setItem(ORDER_STORAGE_KEY, JSON.stringify(requests)); } catch { /* Server file is authoritative. */ }
+  try { storage.setItem(ORDER_STORAGE_KEY, JSON.stringify(requests)); } catch { /* Private Blob storage is authoritative. */ }
   return completed;
 }

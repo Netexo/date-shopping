@@ -30,7 +30,7 @@ test("nothing is submitted before completion; only IDs and date/time are sent", 
   });
   assert.deepEqual(payload.entries,entries);
   assert.deepEqual(Object.keys(payload).sort(),["date","entries","idempotencyKey","time"]);
-  assert.equal(order.backend,"local-json");
+  assert.equal(order.backend,"vercel-blob");
   assert.equal(findCompletedOrder(storage,draft).id,receipt.id);
 });
 
